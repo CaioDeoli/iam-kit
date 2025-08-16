@@ -1,0 +1,36 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: iamkit-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: iamkit
+      MYSQL_USER: iamkit
+      MYSQL_PASSWORD: iamkitpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: ["--default-authentication-plugin=mysql_native_password", "--mysqlx=0"]
+
+  api:
+    build: .
+    container_name: iamkit-api
+    depends_on:
+      - mysql
+    environment:
+      APP_ENV: dev
+      APP_PORT: "8080"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: iamkit
+      DB_PASS: iamkitpass
+      DB_NAME: iamkit
+      JWT_ACCESS_TTL_MIN: "15"
+      JWT_REFRESH_TTL_H: "720"
+      JWT_SECRET: super-secret-change-me
+    ports:
+      - "8080:8080"
+
+volumes:
+  mysql_data:
