@@ -7,11 +7,13 @@ import (
 	"github.com/CaioDeoli/iam-kit/internal/config"
 	"github.com/CaioDeoli/iam-kit/internal/database"
 	httph "github.com/CaioDeoli/iam-kit/internal/http"
+	"github.com/joho/godotenv"
 )
 
 func main() {
 	// optional: load .env in dev (use your favorite loader)
 	_ = os.Setenv("TZ", "UTC")
+	_ = godotenv.Load()
 
 	cfg := config.FromEnv()
 	db := database.Connect(cfg)
