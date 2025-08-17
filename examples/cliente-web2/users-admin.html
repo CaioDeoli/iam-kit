@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin - Usuários</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: #f7f7f8; color: #111; }
+    header { background: #111827; color: #fff; padding: 12px 16px; }
+    header a { color: #c7d2fe; margin-right: 12px; text-decoration: none; }
+    main { max-width: 960px; margin: 40px auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    h1 { margin: 0 0 12px; font-size: 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .section { border: 1px solid #eef; border-radius: 8px; padding: 16px; }
+    label { display: block; margin: 12px 0 6px; font-weight: 600; }
+    input, select { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+    button { margin-top: 12px; padding: 10px 12px; background: #2563eb; color: #fff; border: 0; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    button.secondary { background: #6b7280; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    small.hint { display:block; font-size: 12px; color: #6b7280; margin-top: 8px; }
+    pre { background: #0b1021; color: #d1dbe8; padding: 12px; border-radius: 6px; overflow: auto; max-height: 260px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="./login.html">Login</a>
+    <a href="./register.html">Cadastro</a>
+    <a href="./recover.html">Recuperar senha</a>
+    <a href="./users-admin.html">Admin Usuários</a>
+  </header>
+  <main>
+    <h1>Admin - Usuários</h1>
+    <div class="grid">
+      <div class="section">
+        <h3>Lista</h3>
+        <button id="load">Carregar usuários</button>
+        <label for="users">Selecionar usuário</label>
+        <select id="users"></select>
+        <small class="hint">Requer token de administrador. O dropdown lista email e UUID.</small>
+      </div>
+      <div class="section">
+        <h3>Editar</h3>
+        <form id="edit-form">
+          <label for="email">Email (deixe em branco para não alterar)</label>
+          <input id="email" type="email" placeholder="usuario@exemplo.com">
+
+          <label for="phone">Telefone (apenas dígitos; vazio remove)</label>
+          <input id="phone" type="tel" pattern="[0-9]*" inputmode="numeric" placeholder="5511999999999">
+
+          <label for="username">Username (vazio remove)</label>
+          <input id="username" type="text" placeholder="username">
+
+          <label for="cpf">CPF (apenas dígitos; vazio remove)</label>
+          <input id="cpf" type="text" pattern="[0-9]*" inputmode="numeric" placeholder="12345678900">
+
+          <label for="cnpj">CNPJ (apenas dígitos; vazio remove)</label>
+          <input id="cnpj" type="text" pattern="[0-9]*" inputmode="numeric" placeholder="12345678000199">
+
+          <button id="save" type="submit">Salvar alterações</button>
+          <button id="prefill" type="button" class="secondary">Pré-preencher (debug)</button>
+          <small class="hint">O pré-preenchimento tenta usar /v1/debug/users para obter detalhes adicionais.</small>
+        </form>
+      </div>
+    </div>
+
+    <h3>Resposta</h3>
+    <pre id="out"></pre>
+  </main>
+
+  <script>
+    const API_BASE = localStorage.getItem('API_BASE') || 'http://localhost:8080';
+    const loadBtn = document.getElementById('load');
+    const usersSel = document.getElementById('users');
+    const out = document.getElementById('out');
+    const form = document.getElementById('edit-form');
+    const saveBtn = document.getElementById('save');
+    const prefillBtn = document.getElementById('prefill');
+
+    let users = []; // from /v1/users
+    let debugUsers = []; // optional from /v1/debug/users
+
+    function getToken() {
+      return localStorage.getItem('accessToken') || '';
+    }
+
+    function bearerHeaders() {
+      const t = getToken();
+      return t ? { 'Authorization': 'Bearer ' + t } : {};
+    }
+
+    function userOptionLabel(u) {
+      return `${u.email} — ${u.uuid}`;
+    }
+
+    function setUsersSelect(list) {
+      usersSel.innerHTML = '';
+      for (const u of list) {
+        const opt = document.createElement('option');
+        opt.value = u.uuid;
+        opt.textContent = userOptionLabel(u);
+        usersSel.appendChild(opt);
+      }
+    }
+
+    function selectedUser() {
+      const id = usersSel.value;
+      return users.find(u => u.uuid === id);
+    }
+
+    function fillFormFrom(u, extra) {
+      document.getElementById('email').value = (u && u.email) ? u.email : '';
+      document.getElementById('phone').value = (extra && extra.phone_number) ? extra.phone_number : '';
+      document.getElementById('username').value = (extra && extra.username) ? extra.username : '';
+      document.getElementById('cpf').value = (extra && extra.cpf) ? extra.cpf : '';
+      document.getElementById('cnpj').value = (extra && extra.cnpj) ? extra.cnpj : '';
+    }
+
+    async function loadUsers() {
+      try {
+        out.textContent = '';
+        const res = await fetch(`${API_BASE}/v1/users`, { headers: { 'Content-Type': 'application/json', ...bearerHeaders() } });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { out.textContent = JSON.stringify(data, null, 2); return; }
+        users = data.items || [];
+        setUsersSelect(users);
+        if (users.length) {
+          fillFormFrom(users[0], findDebugUser(users[0].uuid));
+        }
+      } catch (err) {
+        out.textContent = String(err);
+      }
+    }
+
+    function findDebugUser(uuid) {
+      return debugUsers.find(d => d.uuid === uuid);
+    }
+
+    async function loadDebugUsers() {
+      try {
+        const res = await fetch(`${API_BASE}/v1/debug/users`);
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) debugUsers = data.items || [];
+      } catch (_) {}
+    }
+
+    usersSel.addEventListener('change', () => {
+      const u = selectedUser();
+      fillFormFrom(u, findDebugUser(u?.uuid));
+    });
+
+    loadBtn.addEventListener('click', async () => {
+      await loadDebugUsers();
+      await loadUsers();
+    });
+
+    prefillBtn.addEventListener('click', async () => {
+      await loadDebugUsers();
+      const u = selectedUser();
+      fillFormFrom(u, findDebugUser(u?.uuid));
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      out.textContent = '';
+      saveBtn.disabled = true;
+      try {
+        const uuid = usersSel.value;
+        if (!uuid) { out.textContent = 'Selecione um usuário.'; return; }
+        const email = document.getElementById('email').value.trim().toLowerCase();
+        const phone = document.getElementById('phone').value.trim();
+        const username = document.getElementById('username').value.trim();
+        const cpf = document.getElementById('cpf').value.trim();
+        const cnpj = document.getElementById('cnpj').value.trim();
+        const body = {};
+        if (email) body.email = email; // não envie email vazio
+        body.phone_number = phone;     // vazio remove
+        body.username = username;      // vazio remove
+        body.cpf = cpf;                // vazio remove
+        body.cnpj = cnpj;              // vazio remove
+
+        const res = await fetch(`${API_BASE}/v1/users/${uuid}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...bearerHeaders() },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json().catch(() => ({}));
+        out.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        out.textContent = String(err);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
+
+

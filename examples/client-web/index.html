@@ -3,23 +3,94 @@
 <head>
   <meta charset="UTF-8">
   <title>IAMKit Web Client Example</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    fieldset { margin-bottom: 16px; }
+    input { margin: 4px; }
+    .row { margin: 8px 0; }
+  </style>
 </head>
 <body>
   <h1>IAMKit Client Example</h1>
+  <div id="token-status" style="margin-bottom: 12px; color: red;">Token: none</div>
 
-  <h2>Register</h2>
-  <input id="reg-email" placeholder="Email">
-  <input id="reg-password" placeholder="Password" type="password">
-  <input id="reg-role" placeholder="Role">
-  <button onclick="register()">Register</button>
+  <fieldset>
+    <legend>Register (dynamic)</legend>
+    <div class="row">
+      <input id="reg-email" placeholder="Email">
+      <input id="reg-password" placeholder="Password" type="password">
+      <input id="reg-role" placeholder="Role (default: customer)">
+    </div>
+    <div class="row">
+      <input id="reg-phone" placeholder="Phone number (digits)">
+      <input id="reg-username" placeholder="Username">
+      <input id="reg-cpf" placeholder="CPF (digits)">
+      <input id="reg-cnpj" placeholder="CNPJ (digits)">
+      <input id="reg-dob" placeholder="Date of birth (YYYY-MM-DD)">
+    </div>
+    <div class="row">
+      <input id="reg-prov" placeholder="OAuth provider (google/apple)">
+      <input id="reg-prov-user" placeholder="Provider user id">
+    </div>
+    <div class="row">
+      <button onclick="fillRegisterRandom()">Fill random</button>
+      <button onclick="fillRegisterOAuthRandom()">Fill random (OAuth)</button>
+      <button onclick="register()">Register</button>
+      <button onclick="registerOAuth()">Register (OAuth)</button>
+    </div>
+  </fieldset>
 
-  <h2>Login</h2>
-  <input id="login-email" placeholder="Email">
-  <input id="login-password" placeholder="Password" type="password">
-  <button onclick="login()">Login</button>
+  <fieldset>
+    <legend>Login (dynamic)</legend>
+    <div class="row">
+      <input id="login-email" placeholder="Email">
+      <input id="login-password" placeholder="Password" type="password">
+    </div>
+    <div class="row">
+      <input id="login-phone" placeholder="Phone number (digits)">
+      <input id="login-username" placeholder="Username">
+      <input id="login-cpf" placeholder="CPF (digits)">
+      <input id="login-cnpj" placeholder="CNPJ (digits)">
+      <input id="login-dob" placeholder="Date of birth (YYYY-MM-DD)">
+    </div>
+    <div class="row">
+      <button onclick="fillLoginRandom()">Fill random</button>
+      <button onclick="login()">Login</button>
+    </div>
+  </fieldset>
 
-  <h2>Me</h2>
-  <button onclick="getMe()">Get Me</button>
+  <fieldset>
+    <legend>OAuth Login</legend>
+    <div class="row">
+      <input id="oauth-prov" placeholder="Provider (google/apple)">
+      <input id="oauth-prov-user" placeholder="Provider user id">
+    </div>
+    <div class="row">
+      <button onclick="fillOAuthLoginRandom()">Fill random</button>
+      <button onclick="loginOAuth()">Login (OAuth)</button>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>User</legend>
+    <div class="row">
+      <button onclick="getMe()">Get Me</button>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Debug tables (temporary)</legend>
+    <div class="row">
+      <button onclick="viewLoginConfigs()">View login_config</button>
+      <button onclick="viewRegisterConfigs()">View register_config</button>
+      <button onclick="viewOAuthProviders()">View user_oauth_providers</button>
+    </div>
+    <div class="row">
+      <button onclick="viewUsers()">View users</button>
+      <button onclick="viewRoles()">View roles</button>
+      <button onclick="viewUserRoles()">View user_roles</button>
+    </div>
+  </fieldset>
 
   <pre id="output"></pre>
 

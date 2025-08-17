@@ -35,12 +35,17 @@ func Connect(cfg *config.Config) *gorm.DB {
 		&models.Role{},
 		&models.UserRole{},
 		&models.RefreshToken{},
+		&models.PasswordResetToken{},
 		&models.AuditLog{},
+		&models.LoginConfig{},
+		&models.RegisterConfig{},
+		&models.UserOAuthProvider{},
 	); err != nil {
 		log.Fatalf("auto-migrate failed: %v", err)
 	}
 
 	models.SeedBaseRoles(db)
+	models.SeedDefaultAuthConfig(db)
 
 	return db
 }
